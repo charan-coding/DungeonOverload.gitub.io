@@ -46,9 +46,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
         }
          .list-item-text {
             flex-grow: 1;
+            min-width: 50%; /* Ensure text takes up space before wrapping */
         }
         .dice-button {
             transition: all 0.2s ease-in-out;
@@ -176,13 +178,13 @@
                     <input type="number" id="modifier" value="0" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
                 </div>
                 <div class="grid grid-cols-3 gap-4">
-                    <button onclick="rollDice(4)" class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d4</button>
-                    <button onclick="rollDice(6)" class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d6</button>
-                    <button onclick="rollDice(8)" class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d8</button>
-                    <button onclick="rollDice(10)" class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d10</button>
-                    <button onclick="rollDice(12)" class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d12</button>
-                    <button onclick="rollDice(20)" class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d20</button>
-                    <button onclick="rollDice(100)" class="col-span-3 dice-button bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg text-xl">d100</button>
+                    <button class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d4</button>
+                    <button class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d6</button>
+                    <button class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d8</button>
+                    <button class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d10</button>
+                    <button class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d12</button>
+                    <button class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d20</button>
+                    <button class="col-span-3 dice-button bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg text-xl">d100</button>
                 </div>
             </div>
         </div>
@@ -194,11 +196,11 @@
         
         // --- INITIAL DATA ---
         const initialInventory = [
-            { text: "Taser: 3 ARC if target is wet - Stunned", value: 3 },
-            { text: "Chill Pack: Negate burn/arcana based damage", value: 0 },
-            { text: "Refilling Pitcher", value: 0 },
-            { text: "Inventory Canon: Long ranged attack 2 AGI", value: 2 },
-            { text: "Sonic Scream +2 Scream like a girl", value: 2 }
+            { text: "Taser: if target is wet - Stunned", value: 3, stat: "ARC" },
+            { text: "Chill Pack: Negate burn/arcana based damage", value: 0, stat: "None" },
+            { text: "Refilling Pitcher", value: 0, stat: "None" },
+            { text: "Inventory Canon: Long ranged attack", value: 2, stat: "AGI" },
+            { text: "Sonic Scream: Scream like a girl", value: 2, stat: "None" }
         ];
 
         const initialFeats = [
@@ -231,16 +233,9 @@
         }
 
         // --- MANUAL DICE ROLLER ---
-        function rollFromManual() {
-            const numDice = parseInt(document.getElementById('num-dice').value) || 1;
-            const modifier = parseInt(document.getElementById('modifier').value) || 0;
-            const sides = parseInt(event.target.textContent.slice(1)); // D4, D6 etc.
-            rollDice(sides, numDice, modifier);
-        }
-        // Add event listeners to manual roll buttons
         document.querySelectorAll('.dice-button').forEach(button => {
-            const sides = parseInt(button.textContent.slice(1));
             button.onclick = () => {
+                 const sides = parseInt(button.textContent.slice(1));
                  const numDice = parseInt(document.getElementById('num-dice').value) || 1;
                  const modifier = parseInt(document.getElementById('modifier').value) || 0;
                  rollDice(sides, numDice, modifier);
@@ -257,11 +252,33 @@
 
         // --- ITEM ROLLS ---
         function rollItem(button) {
-            const input = button.previousElementSibling;
-            const modifier = parseInt(input.value) || 0;
-            const itemName = button.parentElement.previousElementSibling.textContent.split(':')[0];
-            const details = `1d20 + ${modifier} (${itemName})`;
-            rollDice(20, 1, modifier, details);
+            const li = button.closest('.list-item-container');
+            const select = li.querySelector('select');
+            const input = li.querySelector('input[type="number"]');
+            const itemName = li.querySelector('.list-item-text').textContent.split(':')[0];
+
+            const itemModifier = parseInt(input.value) || 0;
+            const statName = select.value;
+
+            if (statName === 'None') return; // Safety check
+
+            const statValueEl = document.getElementById(`stat-${statName.toLowerCase()}`);
+            const statModifier = parseInt(statValueEl.textContent) || 0;
+            
+            const totalModifier = itemModifier + statModifier;
+
+            const details = `1d20 + ${statModifier}[${statName}] + ${itemModifier}[Item] = 1d20 + ${totalModifier}`;
+            rollDice(20, 1, totalModifier, details);
+        }
+        
+        // --- UI TOGGLE ---
+        function toggleRollControls(selectElement) {
+            const rollControls = selectElement.parentElement.querySelector('.roll-controls');
+            if (selectElement.value === 'None') {
+                rollControls.style.display = 'none';
+            } else {
+                rollControls.style.display = 'flex';
+            }
         }
 
         // --- DYNAMIC LIST LOGIC ---
@@ -270,11 +287,22 @@
             
             if (listId === 'inventory-list') {
                 li.className = 'list-item-container';
+                const hasStat = itemData.stat && itemData.stat !== 'None';
                 li.innerHTML = `
                     <span contenteditable="true" class="list-item-text">${itemData.text}</span>
-                    <div class="flex items-center ml-2 flex-shrink-0">
-                        <input type="number" value="${itemData.value}" class="w-16 bg-gray-700 border border-gray-600 rounded-md p-1 text-white text-center focus:ring-2 focus:ring-sky-500 focus:outline-none">
-                        <button onclick="rollItem(this)" class="ml-2 bg-sky-700 hover:bg-sky-600 text-white font-bold px-3 py-1 rounded-lg text-sm">Roll</button>
+                    <div class="flex items-center ml-auto mt-2 sm:mt-0 flex-shrink-0">
+                        <select onchange="toggleRollControls(this)" class="bg-gray-700 border border-gray-600 rounded-md p-1 text-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="None" ${!hasStat ? 'selected' : ''}>No Stat</option>
+                            <option value="STR" ${itemData.stat === 'STR' ? 'selected' : ''}>STR</option>
+                            <option value="INS" ${itemData.stat === 'INS' ? 'selected' : ''}>INS</option>
+                            <option value="ARC" ${itemData.stat === 'ARC' ? 'selected' : ''}>ARC</option>
+                            <option value="VIT" ${itemData.stat === 'VIT' ? 'selected' : ''}>VIT</option>
+                            <option value="AGI" ${itemData.stat === 'AGI' ? 'selected' : ''}>AGI</option>
+                        </select>
+                        <div class="roll-controls flex items-center ml-2" style="display: ${hasStat ? 'flex' : 'none'};">
+                            <input type="number" value="${itemData.value}" class="w-16 bg-gray-700 border border-gray-600 rounded-md p-1 text-white text-center focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <button onclick="rollItem(this)" class="ml-2 bg-sky-700 hover:bg-sky-600 text-white font-bold px-3 py-1 rounded-lg text-sm">Roll</button>
+                        </div>
                     </div>`;
             } else { // Feats list
                 li.className = 'list-item-container';
@@ -287,7 +315,7 @@
             const list = document.getElementById(listId);
             if (!list) return;
 
-            const defaultItem = listId === 'inventory-list' ? { text: 'New Item...', value: 0 } : 'New Feat...';
+            const defaultItem = listId === 'inventory-list' ? { text: 'New Item...', value: 0, stat: 'None' } : 'New Feat...';
             const newItemEl = createListItem(listId, defaultItem);
             list.appendChild(newItemEl);
             
