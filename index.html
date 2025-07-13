@@ -230,19 +230,13 @@
             str: 2, ins: 7, arc: 9, vit: 4, agi: 9,
             luck: 5, ap: 3,
             inventory: [
-                { text: "Taser: if target is wet - Stunned", value: 3, stat: "ARC" },
-                { text: "Chill Pack: Negate burn/arcana based damage", value: 0, stat: "None" },
-                { text: "Refilling Pitcher", value: 0, stat: "None" },
-                { text: "Inventory Canon: Long ranged attack", value: 2, stat: "AGI" },
-                { text: "Sonic Scream: Scream like a girl", value: 2, stat: "None" }
+                { text: "Taser", rollMod: 3, dmgMod: 0, stat: "ARC" },
+                { text: "Chill Pack", rollMod: 0, dmgMod: 0, stat: "None" },
+                { text: "Inventory Canon", rollMod: 2, dmgMod: 5, stat: "AGI" },
             ],
             feats: [
                 "1/Dungeon: See Enemy HP & dominant stat",
                 "Refund Rage: Reflect the first attack",
-                "1/Dungeon: Rewind 1 round (reset HP/AP)",
-                "Call Manager: Summon ORC-10HP",
-                "Temporal Stutter: Force an enemy to re-roll their last attack.",
-                "Glimpse the Future: Ask the GM one 'yes/no' question."
             ]
         };
 
@@ -254,9 +248,12 @@
             });
             
             document.querySelectorAll('#inventory-list li').forEach(li => {
+                const rollModInput = li.querySelector('.roll-mod-input');
+                const dmgModInput = li.querySelector('.dmg-mod-input');
                 data.inventory.push({
                     text: li.querySelector('.list-item-text').textContent.trim(),
-                    value: li.querySelector('input[type="number"]').value,
+                    rollMod: rollModInput ? rollModInput.value : 0,
+                    dmgMod: dmgModInput ? dmgModInput.value : 0,
                     stat: li.querySelector('select').value
                 });
             });
@@ -284,6 +281,7 @@
             if (data.feats) {
                 data.feats.forEach(featData => featsList.appendChild(createListItem('feats-list', featData)));
             }
+            updateAllDamage();
         }
 
         function saveToLocal() {
@@ -348,6 +346,7 @@
             scene.add(directionalLight);
             
             new ResizeObserver(() => {
+                if (!container) return;
                 renderer.setSize(container.clientWidth, container.clientHeight);
                 camera.aspect = container.clientWidth / container.clientHeight;
                 camera.updateProjectionMatrix();
@@ -361,34 +360,59 @@
             if (currentDie) {
                 currentDie.rotation.x += rotationSpeed.x;
                 currentDie.rotation.y += rotationSpeed.y;
-                // Ease back to normal speed
                 rotationSpeed.x *= 0.95;
                 rotationSpeed.y *= 0.95;
                 if (Math.abs(rotationSpeed.x) < 0.005) rotationSpeed.x = Math.sign(rotationSpeed.x) * 0.005;
                 if (Math.abs(rotationSpeed.y) < 0.005) rotationSpeed.y = Math.sign(rotationSpeed.y) * 0.005;
             }
-            renderer.render(scene, camera);
+            if (renderer) renderer.render(scene, camera);
         }
 
         function display3DDice(sides) {
             if (currentDie) scene.remove(currentDie);
-            let geometry;
-            const size = 1.2;
-            switch(sides) {
-                case 4: geometry = new THREE.TetrahedronGeometry(size); break;
-                case 6: geometry = new THREE.BoxGeometry(size, size, size); break;
-                case 8: geometry = new THREE.OctahedronGeometry(size); break;
-                case 10: geometry = new THREE.IcosahedronGeometry(size, 0); geometry.scale(1, 0.8, 1); break; // Bipyramid approximation
-                case 12: geometry = new THREE.DodecahedronGeometry(size); break;
-                case 20: geometry = new THREE.IcosahedronGeometry(size); break;
-                default: geometry = new THREE.SphereGeometry(size * 0.8, 32, 16); break;
-            }
-            const material = new THREE.MeshStandardMaterial({
-                color: 0x63b3ed,
-                wireframe: true,
-            });
-            currentDie = new THREE.Mesh(geometry, material);
+            currentDie = new THREE.Group();
             scene.add(currentDie);
+
+            const size = 1.2;
+            const material = new THREE.MeshStandardMaterial({ color: 0x63b3ed, wireframe: true });
+
+            const d10Geometry = (() => {
+                const vertices = [];
+                const h = 1; const r = 1;
+                vertices.push(0, h, 0); // Top point
+                for (let i = 0; i < 10; i++) {
+                    const a = (i / 10) * Math.PI * 2;
+                    const y = (i % 2 === 0) ? -h * 0.1 : h * 0.1;
+                    vertices.push(Math.cos(a) * r, y, Math.sin(a) * r);
+                }
+                vertices.push(0, -h, 0); // Bottom point
+                const faces = [
+                    0,2,1, 0,3,2, 0,4,3, 0,5,4, 0,6,5, 0,7,6, 0,8,7, 0,9,8, 0,10,9, 0,1,10,
+                    11,1,2, 11,2,3, 11,3,4, 11,4,5, 11,5,6, 11,6,7, 11,7,8, 11,8,9, 11,9,10, 11,10,1
+                ];
+                return new THREE.PolyhedronGeometry(vertices, faces, size * 0.8, 0);
+            })();
+
+            if (sides === 100) {
+                const die1 = new THREE.Mesh(d10Geometry, material);
+                die1.position.x = -size * 0.7;
+                currentDie.add(die1);
+                const die2 = new THREE.Mesh(d10Geometry, material);
+                die2.position.x = size * 0.7;
+                currentDie.add(die2);
+            } else {
+                let geometry;
+                switch(sides) {
+                    case 4: geometry = new THREE.TetrahedronGeometry(size); break;
+                    case 6: geometry = new THREE.BoxGeometry(size, size, size); break;
+                    case 8: geometry = new THREE.OctahedronGeometry(size); break;
+                    case 10: geometry = d10Geometry; break;
+                    case 12: geometry = new THREE.DodecahedronGeometry(size); break;
+                    case 20: geometry = new THREE.IcosahedronGeometry(size); break;
+                    default: geometry = new THREE.SphereGeometry(size * 0.8, 32, 16); break;
+                }
+                if (geometry) currentDie.add(new THREE.Mesh(geometry, material));
+            }
             rotationSpeed = { x: (Math.random() - 0.5) * 0.5, y: (Math.random() - 0.5) * 0.5 };
         }
 
@@ -436,24 +460,53 @@
         function rollItem(button) {
             const li = button.closest('.list-item-container');
             const select = li.querySelector('select');
-            const input = li.querySelector('input[type="number"]');
+            const input = li.querySelector('.roll-mod-input');
             const itemName = li.querySelector('.list-item-text').textContent.split(':')[0];
             const itemModifier = parseInt(input.value) || 0;
             const statName = select.value;
-            if (statName === 'None') return;
+            if (statName === 'None') {
+                rollDice(20, 1, itemModifier, `${itemName}`);
+                return;
+            };
             const statValueEl = document.getElementById(`stat-${statName.toLowerCase()}`);
             const statModifier = parseInt(statValueEl.textContent) || 0;
             const totalModifier = itemModifier + statModifier;
             rollDice(20, 1, totalModifier, `${itemName} (${statName})`);
         }
         
-        function toggleRollControls(selectElement) {
-            const rollControls = selectElement.parentElement.querySelector('.roll-controls');
-            if (selectElement.value === 'None') {
+        // --- ITEM UI LOGIC ---
+        function updateDamage(listItemElement) {
+            const damageValueEl = listItemElement.querySelector('.damage-value');
+            if (!damageValueEl) return;
+
+            const select = listItemElement.querySelector('select');
+            const input = listItemElement.querySelector('.dmg-mod-input');
+            const itemModifier = parseInt(input.value) || 0;
+            const statName = select.value;
+
+            if (statName === 'None') {
+                damageValueEl.textContent = itemModifier;
+                return;
+            }
+            
+            const statValueEl = document.getElementById(`stat-${statName.toLowerCase()}`);
+            const statModifier = parseInt(statValueEl.textContent) || 0;
+            damageValueEl.textContent = itemModifier + statModifier;
+        }
+
+        function updateAllDamage() {
+            document.querySelectorAll('#inventory-list li').forEach(li => updateDamage(li));
+        }
+
+        function handleItemChange(element) {
+            const listItem = element.closest('.list-item-container');
+            const rollControls = listItem.querySelector('.roll-controls');
+            if (listItem.querySelector('select').value === 'None') {
                 rollControls.style.display = 'none';
             } else {
                 rollControls.style.display = 'flex';
             }
+            updateDamage(listItem);
         }
 
         function createListItem(listId, itemData) {
@@ -464,8 +517,8 @@
                 li.innerHTML = `
                     <button onclick="deleteItem(this)" class="delete-btn mr-2">X</button>
                     <span class="list-item-text">${itemData.text}</span>
-                    <div class="flex items-center ml-auto mt-2 sm:mt-0 flex-shrink-0">
-                        <select onchange="toggleRollControls(this)" class="bg-gray-700 border border-gray-600 rounded-md p-1 text-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    <div class="flex items-center ml-auto mt-2 sm:mt-0 flex-shrink-0 flex-wrap gap-2 justify-end">
+                        <select onchange="handleItemChange(this)" class="bg-gray-700 border border-gray-600 rounded-md p-1 text-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
                             <option value="None" ${!hasStat ? 'selected' : ''}>No Stat</option>
                             <option value="STR" ${itemData.stat === 'STR' ? 'selected' : ''}>STR</option>
                             <option value="INS" ${itemData.stat === 'INS' ? 'selected' : ''}>INS</option>
@@ -473,9 +526,17 @@
                             <option value="VIT" ${itemData.stat === 'VIT' ? 'selected' : ''}>VIT</option>
                             <option value="AGI" ${itemData.stat === 'AGI' ? 'selected' : ''}>AGI</option>
                         </select>
-                        <div class="roll-controls flex items-center ml-2" style="display: ${hasStat ? 'flex' : 'none'};">
-                            <input type="number" value="${itemData.value}" class="w-16 bg-gray-700 border border-gray-600 rounded-md p-1 text-white text-center focus:ring-2 focus:ring-sky-500 focus:outline-none">
-                            <button onclick="rollItem(this)" class="ml-2 bg-sky-700 hover:bg-sky-600 text-white font-bold px-3 py-1 rounded-lg text-sm">Roll</button>
+                        <div class="roll-controls flex items-center flex-wrap gap-x-3 gap-y-1" style="display: ${hasStat ? 'flex' : 'none'};">
+                            <div class="flex items-center">
+                                <label class="text-xs mr-1">Roll:</label>
+                                <input type="number" value="${itemData.rollMod || 0}" class="roll-mod-input w-14 bg-gray-700 border border-gray-600 rounded-md p-1 text-white text-center focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                                <button onclick="rollItem(this)" class="ml-2 bg-sky-700 hover:bg-sky-600 text-white font-bold px-3 py-1 rounded-lg text-sm">Roll</button>
+                            </div>
+                            <div class="flex items-center">
+                                <label class="text-xs mr-1">Dmg:</label>
+                                <input type="number" value="${itemData.dmgMod || 0}" oninput="handleItemChange(this)" class="dmg-mod-input w-14 bg-gray-700 border border-gray-600 rounded-md p-1 text-white text-center focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                                <div class="ml-2 text-sm text-gray-300">Total: <span class="damage-value font-bold">0</span></div>
+                            </div>
                         </div>
                     </div>`;
             } else {
@@ -483,22 +544,19 @@
                     <button onclick="deleteItem(this)" class="delete-btn mr-2">X</button>
                     <span class="list-item-text">${itemData}</span>`;
             }
-            li.querySelector('.list-item-text').addEventListener('dblclick', function() {
-                makeEditable(this);
-            });
+            li.querySelector('.list-item-text').addEventListener('dblclick', function() { makeEditable(this); });
+            if (listId === 'inventory-list') updateDamage(li);
             return li;
         }
 
         function addItem(listId) {
             const list = document.getElementById(listId);
             if (!list) return;
-            const defaultItem = listId === 'inventory-list' ? { text: 'New Item...', value: 0, stat: 'None' } : 'New Feat...';
+            const defaultItem = listId === 'inventory-list' ? { text: 'New Item...', rollMod: 0, dmgMod: 0, stat: 'None' } : 'New Feat...';
             const newItemEl = createListItem(listId, defaultItem);
             list.appendChild(newItemEl);
             const textEl = newItemEl.querySelector('.list-item-text');
-            if (textEl) {
-                makeEditable(textEl);
-            }
+            if (textEl) makeEditable(textEl);
             saveToLocal();
         }
 
@@ -515,6 +573,7 @@
             element.addEventListener('blur', () => {
                 element.contentEditable = false;
                 saveToLocal();
+                updateAllDamage();
             }, { once: true });
         }
 
@@ -526,7 +585,10 @@
             let saveTimeout;
             sheet.addEventListener('input', () => {
                 clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(saveToLocal, 500);
+                saveTimeout = setTimeout(() => {
+                    saveToLocal();
+                    updateAllDamage();
+                }, 500);
             });
 
             document.querySelectorAll('.stat-box.clickable').forEach(box => {
@@ -536,9 +598,7 @@
                 });
                 box.addEventListener('dblclick', (e) => {
                     const pElement = box.querySelector('p[data-field]');
-                    if (pElement) {
-                        makeEditable(pElement);
-                    }
+                    if (pElement) makeEditable(pElement);
                 });
             });
             
