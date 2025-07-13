@@ -5,22 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Character Sheet & Dice Roller</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://css.gg/css?|dice-5" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* Custom styles to complement Tailwind */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #1a202c; /* bg-gray-800 */
+            background-color: #1a202c;
         }
         .font-medieval {
             font-family: 'MedievalSharp', cursive;
         }
         .stat-box {
-            background-color: #2d3748; /* bg-gray-700 */
-            border: 2px solid #a0aec0; /* border-gray-400 */
+            background-color: #2d3748;
+            border: 2px solid #a0aec0;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(0,0,0,0.3);
             color: white;
             padding: 1rem;
@@ -31,51 +30,44 @@
             justify-content: center;
             align-items: center;
             transition: all 0.2s ease-in-out;
+            user-select: none;
         }
         .stat-box.clickable:hover {
             cursor: pointer;
-            border-color: #63b3ed; /* blue-400 */
+            border-color: #63b3ed;
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(99, 179, 237, 0.3);
         }
         .list-item-container {
-            background-color: #4a5568; /* bg-gray-600 */
-            border-left: 4px solid #a0aec0; /* border-gray-400 */
+            background-color: #4a5568;
+            border-left: 4px solid #a0aec0;
             padding: 0.75rem;
             border-radius: 0.375rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap; /* Allow wrapping on small screens */
+            flex-wrap: wrap;
             gap: 0.5rem;
         }
          .list-item-text {
             flex-grow: 1;
-            min-width: 50%; /* Ensure text takes up space before wrapping */
-        }
-        .dice-button {
-            transition: all 0.2s ease-in-out;
+            min-width: 50%;
         }
         .dice-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0, 255, 255, 0.2);
         }
         #dice-result {
-            text-shadow: 0 0 8px rgba(56, 189, 248, 0.8); /* sky-400 glow */
+            text-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+            position: relative;
+            z-index: 10;
         }
-        [contenteditable="true"] {
-            outline: 2px dashed transparent;
-            transition: outline 0.2s;
-            border-radius: 4px;
-            padding: 0 4px;
-        }
-        [contenteditable="true"]:hover,
-        [contenteditable="true"]:focus {
-            outline: 2px dashed #63b3ed; /* blue-400 */
+        p[contenteditable="true"] {
+            outline: 2px dashed #63b3ed !important;
             background-color: rgba(99, 179, 237, 0.1);
         }
         .delete-btn {
-            background-color: #c53030; /* red-700 */
+            background-color: #c53030;
             color: white;
             border-radius: 9999px;
             width: 1.5rem;
@@ -86,10 +78,19 @@
             font-weight: bold;
             line-height: 1;
             flex-shrink: 0;
-            border: 1px solid #9b2c2c; /* red-800 */
+            border: 1px solid #9b2c2c;
         }
         .delete-btn:hover {
-            background-color: #e53e3e; /* red-600 */
+            background-color: #e53e3e;
+        }
+        #dice-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.3;
+            z-index: 1;
         }
     </style>
 </head>
@@ -105,15 +106,15 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 pb-4 border-b-2 border-gray-600">
                     <div>
                         <h2 class="font-medieval text-xl text-gray-400">Name</h2>
-                        <p data-field="name" contenteditable="true" class="text-3xl font-bold text-white">Carter</p>
+                        <p data-field="name" class="text-3xl font-bold text-white">Whip</p>
                     </div>
                     <div>
                         <h2 class="font-medieval text-xl text-gray-400">Race</h2>
-                        <p data-field="race" contenteditable="true" class="text-3xl font-bold text-white">Human</p>
+                        <p data-field="race" class="text-3xl font-bold text-white">Human</p>
                     </div>
                     <div>
                         <h2 class="font-medieval text-xl text-gray-400">Class</h2>
-                        <p data-field="class" contenteditable="true" class="text-3xl font-bold text-white">Chronoweaver</p>
+                        <p data-field="class" class="text-3xl font-bold text-white">Chronoweaver</p>
                     </div>
                 </div>
 
@@ -122,38 +123,38 @@
                     
                     <!-- Left Column: Stats -->
                     <div class="space-y-4">
-                        <div onclick="rollStatCheck('STR')" class="stat-box h-32 clickable">
+                        <div data-stat="STR" class="stat-box h-32 clickable">
                             <h3 class="font-medieval text-2xl text-gray-400">STR</h3>
-                            <p id="stat-str" data-field="str" contenteditable="true" class="text-6xl font-bold">2</p>
+                            <p id="stat-str" data-field="str" class="text-6xl font-bold">2</p>
                         </div>
-                        <div onclick="rollStatCheck('INS')" class="stat-box h-32 clickable">
+                        <div data-stat="INS" class="stat-box h-32 clickable">
                             <h3 class="font-medieval text-2xl text-gray-400">INS</h3>
-                            <p id="stat-ins" data-field="ins" contenteditable="true" class="text-6xl font-bold">7</p>
+                            <p id="stat-ins" data-field="ins" class="text-6xl font-bold">7</p>
                         </div>
-                        <div onclick="rollStatCheck('ARC')" class="stat-box h-32 clickable">
+                        <div data-stat="ARC" class="stat-box h-32 clickable">
                             <h3 class="font-medieval text-2xl text-gray-400">ARC</h3>
-                            <p id="stat-arc" data-field="arc" contenteditable="true" class="text-6xl font-bold">9</p>
+                            <p id="stat-arc" data-field="arc" class="text-6xl font-bold">9</p>
                         </div>
-                        <div onclick="rollStatCheck('VIT')" class="stat-box h-32 clickable">
+                        <div data-stat="VIT" class="stat-box h-32 clickable">
                             <h3 class="font-medieval text-2xl text-gray-400">VIT</h3>
-                            <p id="stat-vit" data-field="vit" contenteditable="true" class="text-6xl font-bold">4</p>
+                            <p id="stat-vit" data-field="vit" class="text-6xl font-bold">4</p>
                         </div>
-                        <div onclick="rollStatCheck('AGI')" class="stat-box h-32 clickable">
+                        <div data-stat="AGI" class="stat-box h-32 clickable">
                             <h3 class="font-medieval text-2xl text-gray-400">AGI</h3>
-                            <p id="stat-agi" data-field="agi" contenteditable="true" class="text-6xl font-bold">9</p>
+                            <p id="stat-agi" data-field="agi" class="text-6xl font-bold">9</p>
                         </div>
                     </div>
 
                     <!-- Center Column: Points, Inventory, Feats -->
                     <div class="md:col-span-2 space-y-6">
                         <div class="grid grid-cols-2 gap-4">
-                            <div class="stat-box h-40">
+                            <div class="stat-box h-40 clickable" data-stat="LUCK">
                                 <h3 class="font-medieval text-2xl text-gray-400">Luck</h3>
-                                <p data-field="luck" contenteditable="true" class="text-7xl font-bold">5</p>
+                                <p data-field="luck" class="text-7xl font-bold">5</p>
                             </div>
-                            <div class="stat-box h-40">
+                            <div class="stat-box h-40 clickable" data-stat="AP">
                                 <h3 class="font-medieval text-2xl text-gray-400">Action Points</h3>
-                                <p data-field="ap" contenteditable="true" class="text-7xl font-bold">3</p>
+                                <p data-field="ap" class="text-7xl font-bold">3</p>
                             </div>
                         </div>
 
@@ -193,8 +194,9 @@
                 <!-- Dice Roller -->
                 <div class="bg-gray-800 p-6 rounded-xl shadow-2xl border border-gray-700">
                     <h2 class="font-medieval text-4xl text-center mb-6">Dice Roller</h2>
-                    <div class="bg-gray-900 rounded-lg p-4 text-center mb-6 min-h-[120px] flex flex-col justify-center">
-                        <p id="dice-details" class="text-gray-400 text-sm h-6"></p>
+                    <div id="dice-result-area" class="bg-gray-900 rounded-lg p-4 text-center mb-6 min-h-[160px] flex flex-col justify-center relative overflow-hidden">
+                        <canvas id="dice-canvas"></canvas>
+                        <p id="dice-details" class="text-gray-400 text-sm h-6 relative z-10"></p>
                         <p id="dice-result" class="text-sky-400 text-6xl font-bold">0</p>
                     </div>
                     <div class="mb-4">
@@ -223,7 +225,6 @@
         const resultDisplay = document.getElementById('dice-result');
         const detailsDisplay = document.getElementById('dice-details');
         
-        // --- INITIAL/DEFAULT DATA ---
         const initialData = {
             name: "Whip", race: "Human", class: "Chronoweaver",
             str: 2, ins: 7, arc: 9, vit: 4, agi: 9,
@@ -233,18 +234,19 @@
                 { text: "Chill Pack: Negate burn/arcana based damage", value: 0, stat: "None" },
                 { text: "Refilling Pitcher", value: 0, stat: "None" },
                 { text: "Inventory Canon: Long ranged attack", value: 2, stat: "AGI" },
-                { text: "Sonic Scream: Scream like a girl", value: 2, stat: "ARC" }
+                { text: "Sonic Scream: Scream like a girl", value: 2, stat: "None" }
             ],
             feats: [
                 "1/Dungeon: See Enemy HP & dominant stat",
                 "Refund Rage: Reflect the first attack",
                 "1/Dungeon: Rewind 1 round (reset HP/AP)",
                 "Call Manager: Summon ORC-10HP",
+                "Temporal Stutter: Force an enemy to re-roll their last attack.",
+                "Glimpse the Future: Ask the GM one 'yes/no' question."
             ]
         };
 
         // --- DATA MANAGEMENT ---
-
         function gatherSheetData() {
             const data = { inventory: [], feats: [] };
             document.querySelectorAll('#character-sheet [data-field]').forEach(el => {
@@ -324,46 +326,113 @@
             fileReader.readAsText(event.target.files[0]);
         });
 
+        // --- 3D DICE LOGIC ---
+        let scene, camera, renderer, currentDie;
+        let rotationSpeed = { x: 0.005, y: 0.005 };
+        
+        function init3D() {
+            const canvas = document.getElementById('dice-canvas');
+            const container = canvas.parentElement;
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 2.5;
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(2, 2, 5);
+            scene.add(directionalLight);
+            
+            new ResizeObserver(() => {
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+            }).observe(container);
+
+            animate3D();
+        }
+
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            if (currentDie) {
+                currentDie.rotation.x += rotationSpeed.x;
+                currentDie.rotation.y += rotationSpeed.y;
+                // Ease back to normal speed
+                rotationSpeed.x *= 0.95;
+                rotationSpeed.y *= 0.95;
+                if (Math.abs(rotationSpeed.x) < 0.005) rotationSpeed.x = Math.sign(rotationSpeed.x) * 0.005;
+                if (Math.abs(rotationSpeed.y) < 0.005) rotationSpeed.y = Math.sign(rotationSpeed.y) * 0.005;
+            }
+            renderer.render(scene, camera);
+        }
+
+        function display3DDice(sides) {
+            if (currentDie) scene.remove(currentDie);
+            let geometry;
+            const size = 1.2;
+            switch(sides) {
+                case 4: geometry = new THREE.TetrahedronGeometry(size); break;
+                case 6: geometry = new THREE.BoxGeometry(size, size, size); break;
+                case 8: geometry = new THREE.OctahedronGeometry(size); break;
+                case 10: geometry = new THREE.IcosahedronGeometry(size, 0); geometry.scale(1, 0.8, 1); break; // Bipyramid approximation
+                case 12: geometry = new THREE.DodecahedronGeometry(size); break;
+                case 20: geometry = new THREE.IcosahedronGeometry(size); break;
+                default: geometry = new THREE.SphereGeometry(size * 0.8, 32, 16); break;
+            }
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x63b3ed,
+                wireframe: true,
+            });
+            currentDie = new THREE.Mesh(geometry, material);
+            scene.add(currentDie);
+            rotationSpeed = { x: (Math.random() - 0.5) * 0.5, y: (Math.random() - 0.5) * 0.5 };
+        }
 
         // --- GENERAL DICE ROLLING LOGIC ---
-        function rollDice(sides, numDice = 1, modifier = 0, details = "") {
-            let total = 0;
+        function rollDice(sides, numDice = 1, modifier = 0, detailsPrefix = "") {
+            let rawRoll = 0;
             let rolls = [];
             for (let i = 0; i < numDice; i++) {
                 const roll = Math.floor(Math.random() * sides) + 1;
                 rolls.push(roll);
-                total += roll;
+                rawRoll += roll;
             }
-            total += modifier;
-            resultDisplay.textContent = total;
+            const total = rawRoll + modifier;
+
+            display3DDice(sides);
             
-            if (!details) {
-                details = `${numDice}d${sides}`;
-                if (rolls.length > 1) details += ` (${rolls.join(' + ')})`;
-                if (modifier !== 0) details += ` ${modifier > 0 ? '+' : ''} ${modifier}`;
+            let modifierString = modifier === 0 ? '' : (modifier > 0 ? ` + ${modifier}` : ` - ${Math.abs(modifier)}`);
+            let detailsText = `${detailsPrefix} Roll: ${rawRoll}${modifierString} | Total: ${total}`;
+            if (detailsPrefix === "") {
+                 detailsText = `Roll: ${rawRoll}${modifierString} | Total: ${total}`;
             }
-            detailsDisplay.textContent = details;
+
+            resultDisplay.textContent = rawRoll;
+            detailsDisplay.textContent = detailsText;
         }
 
-        // --- MANUAL DICE ROLLER ---
         document.querySelectorAll('.dice-button').forEach(button => {
             button.onclick = () => {
                  const sides = parseInt(button.textContent.slice(1));
                  const numDice = parseInt(document.getElementById('num-dice').value) || 1;
                  const modifier = parseInt(document.getElementById('modifier').value) || 0;
-                 rollDice(sides, numDice, modifier);
+                 rollDice(sides, numDice, modifier, `${numDice}d${sides}`);
             };
         });
 
-        // --- STAT CHECK ROLLS ---
         function rollStatCheck(statName) {
-            const statValueEl = document.getElementById(`stat-${statName.toLowerCase()}`);
+            if (!statName) return;
+            const statField = statName.toLowerCase();
+            const statValueEl = document.querySelector(`[data-field="${statField}"]`);
+            if (!statValueEl) return;
             const modifier = parseInt(statValueEl.textContent) || 0;
-            const details = `1d20 + ${modifier} (${statName} Check)`;
-            rollDice(20, 1, modifier, details);
+            rollDice(20, 1, modifier, `${statName} Check`);
         }
 
-        // --- ITEM ROLLS ---
         function rollItem(button) {
             const li = button.closest('.list-item-container');
             const select = li.querySelector('select');
@@ -375,11 +444,9 @@
             const statValueEl = document.getElementById(`stat-${statName.toLowerCase()}`);
             const statModifier = parseInt(statValueEl.textContent) || 0;
             const totalModifier = itemModifier + statModifier;
-            const details = `1d20 + ${statModifier}[${statName}] + ${itemModifier}[Item] = 1d20 + ${totalModifier}`;
-            rollDice(20, 1, totalModifier, details);
+            rollDice(20, 1, totalModifier, `${itemName} (${statName})`);
         }
         
-        // --- UI TOGGLE ---
         function toggleRollControls(selectElement) {
             const rollControls = selectElement.parentElement.querySelector('.roll-controls');
             if (selectElement.value === 'None') {
@@ -389,7 +456,6 @@
             }
         }
 
-        // --- DYNAMIC LIST LOGIC ---
         function createListItem(listId, itemData) {
             const li = document.createElement('li');
             li.className = 'list-item-container';
@@ -397,7 +463,7 @@
                 const hasStat = itemData.stat && itemData.stat !== 'None';
                 li.innerHTML = `
                     <button onclick="deleteItem(this)" class="delete-btn mr-2">X</button>
-                    <span contenteditable="true" class="list-item-text">${itemData.text}</span>
+                    <span class="list-item-text">${itemData.text}</span>
                     <div class="flex items-center ml-auto mt-2 sm:mt-0 flex-shrink-0">
                         <select onchange="toggleRollControls(this)" class="bg-gray-700 border border-gray-600 rounded-md p-1 text-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
                             <option value="None" ${!hasStat ? 'selected' : ''}>No Stat</option>
@@ -415,8 +481,11 @@
             } else {
                 li.innerHTML = `
                     <button onclick="deleteItem(this)" class="delete-btn mr-2">X</button>
-                    <span contenteditable="true" class="list-item-text">${itemData}</span>`;
+                    <span class="list-item-text">${itemData}</span>`;
             }
+            li.querySelector('.list-item-text').addEventListener('dblclick', function() {
+                makeEditable(this);
+            });
             return li;
         }
 
@@ -428,8 +497,7 @@
             list.appendChild(newItemEl);
             const textEl = newItemEl.querySelector('.list-item-text');
             if (textEl) {
-                textEl.focus();
-                document.execCommand('selectAll', false, null);
+                makeEditable(textEl);
             }
             saveToLocal();
         }
@@ -439,15 +507,43 @@
             saveToLocal();
         }
         
-        // --- INITIALIZE AND SET UP AUTO-SAVE ---
+        function makeEditable(element) {
+            if (element.isContentEditable) return;
+            element.contentEditable = true;
+            element.focus();
+            document.execCommand('selectAll', false, null);
+            element.addEventListener('blur', () => {
+                element.contentEditable = false;
+                saveToLocal();
+            }, { once: true });
+        }
+
         window.onload = function() {
             loadFromLocal();
+            init3D();
 
             const sheet = document.getElementById('character-sheet');
             let saveTimeout;
             sheet.addEventListener('input', () => {
                 clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(saveToLocal, 500); // Debounce saving
+                saveTimeout = setTimeout(saveToLocal, 500);
+            });
+
+            document.querySelectorAll('.stat-box.clickable').forEach(box => {
+                box.addEventListener('click', (e) => {
+                    if (e.target.isContentEditable || e.target.parentElement.isContentEditable) return;
+                    rollStatCheck(box.dataset.stat);
+                });
+                box.addEventListener('dblclick', (e) => {
+                    const pElement = box.querySelector('p[data-field]');
+                    if (pElement) {
+                        makeEditable(pElement);
+                    }
+                });
+            });
+            
+            document.querySelectorAll('#character-sheet p[data-field]').forEach(p => {
+                p.addEventListener('dblclick', () => makeEditable(p));
             });
         };
 
