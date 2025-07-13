@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Sheet & Dice Roller</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://css.gg/css?|dice-5" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles to complement Tailwind */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* bg-gray-800 */
+        }
+        .font-medieval {
+            font-family: 'MedievalSharp', cursive;
+        }
+        .stat-box {
+            background-color: #2d3748; /* bg-gray-700 */
+            border: 2px solid #a0aec0; /* border-gray-400 */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(0,0,0,0.3);
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s ease-in-out;
+        }
+        .stat-box.clickable:hover {
+            cursor: pointer;
+            border-color: #63b3ed; /* blue-400 */
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(99, 179, 237, 0.3);
+        }
+        .list-item-container {
+            background-color: #4a5568; /* bg-gray-600 */
+            border-left: 4px solid #a0aec0; /* border-gray-400 */
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+         .list-item-text {
+            flex-grow: 1;
+        }
+        .dice-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .dice-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 255, 255, 0.2);
+        }
+        #dice-result {
+            text-shadow: 0 0 8px rgba(56, 189, 248, 0.8); /* sky-400 glow */
+        }
+        [contenteditable="true"] {
+            outline: 2px dashed transparent;
+            transition: outline 0.2s;
+            border-radius: 4px;
+            padding: 0 4px;
+        }
+        [contenteditable="true"]:hover,
+        [contenteditable="true"]:focus {
+            outline: 2px dashed #63b3ed; /* blue-400 */
+            background-color: rgba(99, 179, 237, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 p-4 sm:p-6 lg:p-8">
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- Character Sheet Section -->
+        <div class="lg:col-span-2">
+            <div class="bg-gray-800 p-6 rounded-xl shadow-2xl border border-gray-700">
+                
+                <!-- Header -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 pb-4 border-b-2 border-gray-600">
+                    <div>
+                        <h2 class="font-medieval text-xl text-gray-400">Name</h2>
+                        <p contenteditable="true" class="text-3xl font-bold text-white">Whip</p>
+                    </div>
+                    <div>
+                        <h2 class="font-medieval text-xl text-gray-400">Race</h2>
+                        <p contenteditable="true" class="text-3xl font-bold text-white">Human</p>
+                    </div>
+                    <div>
+                        <h2 class="font-medieval text-xl text-gray-400">Class</h2>
+                        <p contenteditable="true" class="text-3xl font-bold text-white">Chronoweaver</p>
+                    </div>
+                </div>
+
+                <!-- Main Content Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <!-- Left Column: Stats -->
+                    <div class="space-y-4">
+                        <div onclick="rollStatCheck('STR')" class="stat-box h-32 clickable">
+                            <h3 class="font-medieval text-2xl text-gray-400">STR</h3>
+                            <p id="stat-str" contenteditable="true" class="text-6xl font-bold">2</p>
+                        </div>
+                        <div onclick="rollStatCheck('INS')" class="stat-box h-32 clickable">
+                            <h3 class="font-medieval text-2xl text-gray-400">INS</h3>
+                            <p id="stat-ins" contenteditable="true" class="text-6xl font-bold">7</p>
+                        </div>
+                        <div onclick="rollStatCheck('ARC')" class="stat-box h-32 clickable">
+                            <h3 class="font-medieval text-2xl text-gray-400">ARC</h3>
+                            <p id="stat-arc" contenteditable="true" class="text-6xl font-bold">9</p>
+                        </div>
+                        <div onclick="rollStatCheck('VIT')" class="stat-box h-32 clickable">
+                            <h3 class="font-medieval text-2xl text-gray-400">VIT</h3>
+                            <p id="stat-vit" contenteditable="true" class="text-6xl font-bold">4</p>
+                        </div>
+                        <div onclick="rollStatCheck('AGI')" class="stat-box h-32 clickable">
+                            <h3 class="font-medieval text-2xl text-gray-400">AGI</h3>
+                            <p id="stat-agi" contenteditable="true" class="text-6xl font-bold">9</p>
+                        </div>
+                    </div>
+
+                    <!-- Center Column: Points, Inventory, Feats -->
+                    <div class="md:col-span-2 space-y-6">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="stat-box h-40">
+                                <h3 class="font-medieval text-2xl text-gray-400">Luck</h3>
+                                <p contenteditable="true" class="text-7xl font-bold">5</p>
+                            </div>
+                            <div class="stat-box h-40">
+                                <h3 class="font-medieval text-2xl text-gray-400">Action Points</h3>
+                                <p contenteditable="true" class="text-7xl font-bold">3</p>
+                            </div>
+                        </div>
+
+                        <!-- Inventory -->
+                        <div>
+                            <h3 class="font-medieval text-3xl mb-3 text-center">Inventory</h3>
+                            <ul id="inventory-list" class="space-y-2">
+                                <!-- Items will be dynamically generated here -->
+                            </ul>
+                             <button onclick="addItem('inventory-list')" class="mt-3 w-full bg-green-700 hover:bg-green-600 text-white font-bold py-2 rounded-lg transition-colors">Add Item</button>
+                        </div>
+
+                        <!-- Feats -->
+                        <div>
+                            <h3 class="font-medieval text-3xl mb-3 text-center">Feats</h3>
+                            <ul id="feats-list" class="space-y-2">
+                                <!-- Feats will be dynamically generated here -->
+                            </ul>
+                            <button onclick="addItem('feats-list')" class="mt-3 w-full bg-green-700 hover:bg-green-600 text-white font-bold py-2 rounded-lg transition-colors">Add Feat</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dice Roller Section -->
+        <div class="lg:col-span-1">
+            <div class="bg-gray-800 p-6 rounded-xl shadow-2xl border border-gray-700 sticky top-8">
+                <h2 class="font-medieval text-4xl text-center mb-6">Dice Roller</h2>
+                <div class="bg-gray-900 rounded-lg p-4 text-center mb-6 min-h-[120px] flex flex-col justify-center">
+                    <p id="dice-details" class="text-gray-400 text-sm h-6"></p>
+                    <p id="dice-result" class="text-sky-400 text-6xl font-bold">0</p>
+                </div>
+                <div class="mb-4">
+                    <label for="num-dice" class="block text-sm font-medium text-gray-400 mb-1">Number of Dice</label>
+                    <input type="number" id="num-dice" value="1" min="1" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                </div>
+                <div class="mb-6">
+                    <label for="modifier" class="block text-sm font-medium text-gray-400 mb-1">Modifier</label>
+                    <input type="number" id="modifier" value="0" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2 text-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <button onclick="rollDice(4)" class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d4</button>
+                    <button onclick="rollDice(6)" class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d6</button>
+                    <button onclick="rollDice(8)" class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d8</button>
+                    <button onclick="rollDice(10)" class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d10</button>
+                    <button onclick="rollDice(12)" class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d12</button>
+                    <button onclick="rollDice(20)" class="dice-button bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xl">d20</button>
+                    <button onclick="rollDice(100)" class="col-span-3 dice-button bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg text-xl">d100</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const resultDisplay = document.getElementById('dice-result');
+        const detailsDisplay = document.getElementById('dice-details');
+        
+        // --- INITIAL DATA ---
+        const initialInventory = [
+            { text: "Taser: 3 ARC if target is wet - Stunned", value: 3 },
+            { text: "Chill Pack: Negate burn/arcana based damage", value: 0 },
+            { text: "Refilling Pitcher", value: 0 },
+            { text: "Inventory Canon: Long ranged attack 2 AGI", value: 2 },
+            { text: "Sonic Scream +2 Scream like a girl", value: 2 }
+        ];
+
+        const initialFeats = [
+            "1/Dungeon: See Enemy HP & dominant stat",
+            "Refund Rage: Reflect the first attack",
+            "1/Dungeon: Rewind 1 round (reset HP/AP)",
+            "Call Manager: Summon ORC-10HP",
+            "Temporal Stutter: Force an enemy to re-roll their last attack.",
+            "Glimpse the Future: Ask the GM one 'yes/no' question."
+        ];
+
+        // --- GENERAL DICE ROLLING LOGIC ---
+        function rollDice(sides, numDice = 1, modifier = 0, details = "") {
+            let total = 0;
+            let rolls = [];
+            for (let i = 0; i < numDice; i++) {
+                const roll = Math.floor(Math.random() * sides) + 1;
+                rolls.push(roll);
+                total += roll;
+            }
+            total += modifier;
+            resultDisplay.textContent = total;
+            
+            if (!details) {
+                details = `${numDice}d${sides}`;
+                if (rolls.length > 1) details += ` (${rolls.join(' + ')})`;
+                if (modifier !== 0) details += ` ${modifier > 0 ? '+' : ''} ${modifier}`;
+            }
+            detailsDisplay.textContent = details;
+        }
+
+        // --- MANUAL DICE ROLLER ---
+        function rollFromManual() {
+            const numDice = parseInt(document.getElementById('num-dice').value) || 1;
+            const modifier = parseInt(document.getElementById('modifier').value) || 0;
+            const sides = parseInt(event.target.textContent.slice(1)); // D4, D6 etc.
+            rollDice(sides, numDice, modifier);
+        }
+        // Add event listeners to manual roll buttons
+        document.querySelectorAll('.dice-button').forEach(button => {
+            const sides = parseInt(button.textContent.slice(1));
+            button.onclick = () => {
+                 const numDice = parseInt(document.getElementById('num-dice').value) || 1;
+                 const modifier = parseInt(document.getElementById('modifier').value) || 0;
+                 rollDice(sides, numDice, modifier);
+            };
+        });
+
+        // --- STAT CHECK ROLLS ---
+        function rollStatCheck(statName) {
+            const statValueEl = document.getElementById(`stat-${statName.toLowerCase()}`);
+            const modifier = parseInt(statValueEl.textContent) || 0;
+            const details = `1d20 + ${modifier} (${statName} Check)`;
+            rollDice(20, 1, modifier, details);
+        }
+
+        // --- ITEM ROLLS ---
+        function rollItem(button) {
+            const input = button.previousElementSibling;
+            const modifier = parseInt(input.value) || 0;
+            const itemName = button.parentElement.previousElementSibling.textContent.split(':')[0];
+            const details = `1d20 + ${modifier} (${itemName})`;
+            rollDice(20, 1, modifier, details);
+        }
+
+        // --- DYNAMIC LIST LOGIC ---
+        function createListItem(listId, itemData) {
+            const li = document.createElement('li');
+            
+            if (listId === 'inventory-list') {
+                li.className = 'list-item-container';
+                li.innerHTML = `
+                    <span contenteditable="true" class="list-item-text">${itemData.text}</span>
+                    <div class="flex items-center ml-2 flex-shrink-0">
+                        <input type="number" value="${itemData.value}" class="w-16 bg-gray-700 border border-gray-600 rounded-md p-1 text-white text-center focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        <button onclick="rollItem(this)" class="ml-2 bg-sky-700 hover:bg-sky-600 text-white font-bold px-3 py-1 rounded-lg text-sm">Roll</button>
+                    </div>`;
+            } else { // Feats list
+                li.className = 'list-item-container';
+                li.innerHTML = `<span contenteditable="true" class="list-item-text">${itemData}</span>`;
+            }
+            return li;
+        }
+
+        function addItem(listId) {
+            const list = document.getElementById(listId);
+            if (!list) return;
+
+            const defaultItem = listId === 'inventory-list' ? { text: 'New Item...', value: 0 } : 'New Feat...';
+            const newItemEl = createListItem(listId, defaultItem);
+            list.appendChild(newItemEl);
+            
+            const textEl = newItemEl.querySelector('.list-item-text');
+            if (textEl) {
+                textEl.focus();
+                document.execCommand('selectAll', false, null);
+            }
+        }
+        
+        // --- INITIALIZE LISTS ON PAGE LOAD ---
+        window.onload = function() {
+            const inventoryList = document.getElementById('inventory-list');
+            initialInventory.forEach(item => {
+                inventoryList.appendChild(createListItem('inventory-list', item));
+            });
+
+            const featsList = document.getElementById('feats-list');
+            initialFeats.forEach(feat => {
+                featsList.appendChild(createListItem('feats-list', feat));
+            });
+        };
+
+    </script>
+
+</body>
+</html>
